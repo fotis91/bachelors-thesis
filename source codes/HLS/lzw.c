@@ -224,7 +224,7 @@ int decode(int code) {
     return temp;
 }
 
-**int** search(int prefix, int character,struct DictNode search[1023],int loops){
+int search(int prefix, int character,struct DictNode search[1023],int loops){
 
     static int lastMatch;
     int iIterations=0;
@@ -272,7 +272,6 @@ int decode(int code) {
     
     return -1;
 }
-
 
 
 void insert(int prefix, int character, int value,struct DictNode insert[1023]){

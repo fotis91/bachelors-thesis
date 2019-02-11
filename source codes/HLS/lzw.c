@@ -1,7 +1,7 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Searching in dictionary exploits previous matches. When a match occurs, the next search begins from the position of this match.
+ * So possible elements that exist around this element and concern us will be found faster, some kind of principle of locality 
+ * made by this.
  */
 
 /* 

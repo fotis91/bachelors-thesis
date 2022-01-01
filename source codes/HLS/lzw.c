@@ -1,283 +1,100 @@
-/*
- * Searching in dictionary exploits previous matches. When a match occurs, the next search begins from the position of this match.
- * So potential elements that exist around this element and concern us will be found faster. Some kind of principle of locality 
- * made by this.
- */
+//#include <ap_cint.h>
 
-/* 
- * File:   main.c
- * Author: fotis
- *
- * Created on 4 Δεκεμβρίου 2018, 2:45 μμ
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-
-struct dict{
-   unsigned int tagBitComplementaryCharacter : 1;
-   unsigned int tagBitComplementaryPrefix : 1;
-   unsigned int prefix : 8;
-   unsigned int character : 8;
-   unsigned int value : 10;
-};
-
-typedef struct{
-    int prefix; 
-    int character; 
-} DictElement;
 
 struct DictNode {
-	int value; 
-	int prefix;
-	int character; 
+	int value; // the position in the list
+	int prefix; // prefix for byte > 255
+	int character; // the last byte of the string
 };
 
-int compressed[100];
-int decompressed[100];
-int counter=0;
-void dictionaryArrayAdd(int prefix, int character, int value);
-int dictionaryArrayPrefix(int value);
-int dictionaryArrayCharacter(int value);
 
-DictElement dictionaryArray[2023];
+void dictionaryInit(struct DictNode nodeinit[1023]);
 
+int dictionaryLookup(int prefix, int character,struct DictNode nodelookup[1023]);
 
-void dictionaryArrayAdd(int prefix, int character, int value) {
-    
-    dictionaryArray[value].prefix = prefix;
-    dictionaryArray[value].character = character;
-}
+void dictionaryAdd(int prefix, int character, int value,struct DictNode nodeadd[1023]);
 
-int dictionaryArrayPrefix(int value) {
-    return dictionaryArray[value].prefix;
-}
+void compress(int character,int * WC,int done) {
 
-int dictionaryArrayCharacter(int value) {
-    return dictionaryArray[value].character;
-}
+#pragma HLS INTERFACE s_axilite port=return
+#pragma HLS INTERFACE s_axilite port=character
+#pragma HLS INTERFACE axis port=WC
 
-int search(int prefix, int character,struct DictNode search[1023],int loops);
-void insert(int prefix, int character, int value,struct DictNode insert[1023]);
-int compress(int character,int done); 
-
-void decompress(int codes[],int iter);
-int decode(int code);
-
-int main(int argc, char** argv) {
-
-   
-    int character=47;
-    int ud=1;
-    int tmpud;
-    int i=0;
-    int j=0;
-    int cnt=0; 
-    int codereturn=0;
-    int charactersCoded=0;
-    //struct DictNode p_nodes[1023];
-    
-    
-    
-    while(1){
-
-    tmpud=ud;
-
-    if(character>=68)ud=0;
-    else if(character<=48)ud=1;
-    else ud=tmpud;
-    if(ud==1)character=character+1;
-    else character=character-1;        
-    
-    codereturn=compress(character,100);
-    charactersCoded++;
-    
-    if(codereturn==-1)continue;
-    compressed[cnt]=codereturn;
-    cnt++;
-    if(codereturn>2023)break;
-    }
-    
-    decompress(compressed,cnt);
-    
-    return (EXIT_SUCCESS);
-}
-
-
-int compress(int character,int done){
-    
-    static int nextCode=1000;
-    static int countCodes=0;
-    int dictionarySize=2023;
-    int index;
-    static int prefix;
+    static struct DictNode p_nodes[1023];
     static int init=0;
-    int temp_prefix;
-    struct DictNode row[1023];
-    
+    static int prefix=-1;
+    static int nextCode=1000;
+    static int dictionarySize=2023;
+    static int temp_prefix;
+    static int count_codes=0;
+    int index;
+
+
     if(init==0){
-        init=1;
-        prefix=character;
-        printf("return 48 prwth periptwsh -1 iterations=0\n");
-        return -1;
-    }
-    
-    if ((index = search(prefix,character, row, countCodes)) != -1){ prefix = index; 
-     if(countCodes==done) return prefix<<11;
-     else return -1;
+    dictionaryInit(p_nodes);
+    init=1;}
+
+    if ((index = dictionaryLookup(prefix,character, p_nodes)) != -1){ prefix = index;
+     if(count_codes==done) *WC=index;
+     else  *WC=-1;
 	     }
-    else {countCodes++;
-       
-     if (countCodes < dictionarySize) {
-	insert(prefix,character, nextCode++, row);}
+    else {count_codes++;
+     if (nextCode < dictionarySize) {
+	dictionaryAdd(prefix,character, nextCode++, p_nodes);}
 
     temp_prefix=prefix;
 
     prefix=character;
-   
-    
-    if(countCodes==done) return (character<<11)+temp_prefix;
 
-    else return temp_prefix;
-    
-    
+    if(count_codes==done) *WC=((character<<11)+temp_prefix);
+
+    else *WC=temp_prefix;
     }
+
+}
+
+void dictionaryInit(struct DictNode nodeinit[1023]) {
+	for (int i = 0; i <= 999; i++) {
+	    	nodeinit[i].prefix=-1;
+	    	nodeinit[i].character=i;
+	        nodeinit[i].value=i;
+	    }
+	    for (int j = 1000; j < 1024; j++) {
+	    	nodeinit[j].prefix=-1;
+	    	nodeinit[j].character=-1;
+	        nodeinit[j].value=-1;
+	    }
+}
+
+int dictionaryLookup(int prefix, int character,struct DictNode nodelookup[1023]) {
+
+	if(prefix!=-1){
+
+	      for (int i = 0; i < 1024; i++) {
+
+	       if(nodelookup[i].value<999) return -1;
+
+	       else{
+	           if(nodelookup[i].prefix == prefix && nodelookup[i].character == character) return nodelookup[i].value;
+	           }
+	       }
+
+	      }
+
+	    else{
+	        for (int i = 0; i < 1000; i++){
+	          if(nodelookup[i].character == character) return nodelookup[i].value;
+	        }
+	    }
+
+
 }
 
 
-void decompress(int codes[],int iter) {
-    
-     int previousCode; int currentCode;
-     int nextCode = 1000;
-     int firstChar;
-     int position=0;
-     int i=0;
-     int dictionarySize=2023;
-     int val=2047;//2047=11111111111 for bitwise operations, unpacking bits from integers
-     int characterMoved=0;
-     int tempPrefix=0;
-    
-    
-    
-    
-    previousCode=codes[i];
-    decompressed[counter]=previousCode;
-
-    counter++;
-    i++;
- 
-    while(position<iter){
-       
-    currentCode=codes[i];
-    if(currentCode>2023){
-    tempPrefix=currentCode & val;  
-    characterMoved=currentCode>>11;   
-    if(tempPrefix!=0) decode(tempPrefix);
-    decompressed[counter]=characterMoved;
-    
-    exit(0);
-    }
-   
-    i++; 
-    
-
-    if (currentCode >= nextCode) {
-    firstChar = decode(previousCode); 
-    decompressed[counter]=firstChar;
-    
-    counter++;        
-    
-            
-   
-    } else firstChar = decode(currentCode); 
-           
-    
-     
-    if (nextCode < dictionarySize) dictionaryArrayAdd(previousCode, firstChar, nextCode++);
-        
-   
-    previousCode = currentCode;
-    position++;
-    }
- 
-   
-}
-
-int decode(int code) {
-    int character; int temp;
-   
-
-    if (code > 999) { 
-        character = dictionaryArrayCharacter(code);
-        temp = decode(dictionaryArrayPrefix(code));
-     
-    } else {
-        character = code; 
-        temp = code;
-    }
-    decompressed[counter]=character;
-    
-   
-    counter++;
-    
-    
-    return temp;
-}
-
-int search(int prefix, int character,struct DictNode search[1023],int loops){
-
-    static int lastMatch;
-    int iIterations=0;
-    int jIterations=0;
-    int kIterations=0;
-    int lIterations=0;
-    int k=0;
-    int l=loops;
-    if(lastMatch!=0 && lastMatch!=loops){
-            k=0;
-            l=loops;
-        }
-    
-    for(int i=lastMatch, j=lastMatch;i<=loops || j>=0;i++,j--){  
-        
-        if(lastMatch!=0 && lastMatch!=loops){
-        if(search[k].prefix==prefix && search[k].character==character){
-            lastMatch=k; 
-            return search[k].value;
-        }
-        }
-        
-        if(lastMatch!=0 && lastMatch!=loops){
-        if(search[l].prefix==prefix && search[l].character==character){
-            lastMatch=l; 
-            return search[k].value;
-        }
-        }
-            
-        if(i<=loops){ iIterations++;
-            if(search[i].prefix==prefix && search[i].character==character){ 
-                lastMatch=i; 
-                return search[i].value;}
-        }
-        if(i==j)continue;
-        if(j>=0) { jIterations++;
-            if(search[j].prefix==prefix && search[j].character==character){ 
-                lastMatch=j; 
-                return search[j].value;
-            }
-        }
-    
-    }
-    
-    
-    return -1;
-}
-
-
-void insert(int prefix, int character, int value,struct DictNode insert[1023]){
-    static int pos=0;
-    insert[pos].prefix=prefix;
-    insert[pos].character=character;
-    insert[pos].value=value;
-    pos++;
+void dictionaryAdd(int prefix, int character, int value,struct DictNode nodeadd[1023]) {
+    static int cnt=0;
+    nodeadd[cnt].value = value;
+    nodeadd[cnt].prefix = prefix;
+    nodeadd[cnt].character = character;
+	cnt++;
 }

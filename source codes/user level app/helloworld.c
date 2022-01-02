@@ -45,7 +45,7 @@
  *   ps7_uart    115200 (configured by bootrom/bsp)
  */
 
-/* This is a simple application managing the hardware accelerator called "compress". It initializes the accelerator and feeds it with data*/
+/* THIS IS A SIMPLE APPLICATION MANAGING THE HARDWARE ACCELERATOR CALLED "compress". IT INITIALIZES THE ACCELERATOR AND FEEDS IT WITH DATA*/
 
 #include <stdio.h>
 #include "xscugic.h"

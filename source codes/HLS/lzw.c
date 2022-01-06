@@ -1,13 +1,14 @@
 //#include <ap_cint.h>
 
 
-struct DictNode {
+struct DictNode { // sturct holding information about a new registry to the dictionary
 	int value; // the position in the list
 	int prefix; // prefix for byte > 255
 	int character; // the last byte of the string
 };
 
-
+//methods for controlling the dictionary. These methods include the initialization, 
+//searching in the dictionary and adding a new entry which are implemented after the IP function
 void dictionaryInit(struct DictNode nodeinit[1023]);
 
 int dictionaryLookup(int prefix, int character,struct DictNode nodelookup[1023]);
@@ -16,7 +17,8 @@ void dictionaryAdd(int prefix, int character, int value,struct DictNode nodeadd[
 
 void compress(int character,int * WC,int done) {
 
-#pragma HLS INTERFACE s_axilite port=return
+	//AXI protocols
+#pragma HLS INTERFACE s_axilite port=return 
 #pragma HLS INTERFACE s_axilite port=character
 #pragma HLS INTERFACE axis port=WC
 
@@ -31,7 +33,7 @@ void compress(int character,int * WC,int done) {
 
 
     if(init==0){
-    dictionaryInit(p_nodes);
+    dictionaryInit(p_nodes); // dictionary initialization
     init=1;}
 
     if ((index = dictionaryLookup(prefix,character, p_nodes)) != -1){ prefix = index;
@@ -46,7 +48,7 @@ void compress(int character,int * WC,int done) {
 
     prefix=character;
 
-    if(count_codes==done) *WC=((character<<11)+temp_prefix);
+    if(count_codes==done) *WC=((character<<11)+temp_prefix); // terminating condition
 
     else *WC=temp_prefix;
     }

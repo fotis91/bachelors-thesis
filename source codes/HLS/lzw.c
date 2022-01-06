@@ -1,5 +1,5 @@
 //#include <ap_cint.h>
-
+//This is an HLS C code for the realization of the LZW compression algorithm on hardware. This is a dictionary-based compression algorithm.
 
 struct DictNode { // sturct holding information about a new registry to the dictionary
 	int value; // the position in the list
